@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inbox-grinder.local/schemas/plugin-manifest.schema.json",
+  "title": "Inbox Grinder Plugin Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "runtime",
+    "entrypoint",
+    "compatibility",
+    "permissions",
+    "matches",
+    "contentNeeds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]+[a-z0-9]$",
+      "maxLength": 160,
+      "description": "Reverse-DNS style stable plugin identifier."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "runtime": {
+      "enum": [
+        "wasm-component",
+        "local-binary"
+      ]
+    },
+    "entrypoint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inboxGrinderApi"
+      ],
+      "properties": {
+        "inboxGrinderApi": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "minimumHostVersion": {
+          "type": "string"
+        }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "enum": [
+              "read_metadata",
+              "read_headers",
+              "read_text_body",
+              "read_html_body",
+              "read_links",
+              "read_attachments_metadata",
+              "read_calendar_attachments",
+              "suggest_archive",
+              "suggest_mark_read",
+              "suggest_move",
+              "suggest_label",
+              "suggest_snooze",
+              "open_url",
+              "copy_text"
+            ]
+          },
+          {
+            "type": "string",
+            "pattern": "^network:[a-z0-9.-]+(?::[0-9]+)?$"
+          }
+        ]
+      }
+    },
+    "matches": {
+      "$ref": "#/$defs/matches"
+    },
+    "inputScopes": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "default": [
+        "message"
+      ],
+      "description": "Input scopes this plugin can handle. Omit to receive the default single-message input.",
+      "items": {
+        "enum": [
+          "message",
+          "thread"
+        ]
+      }
+    },
+    "contentNeeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "type": "boolean",
+          "default": true
+        },
+        "headers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "textBody": {
+          "type": "boolean",
+          "default": false
+        },
+        "htmlBody": {
+          "type": "boolean",
+          "default": false
+        },
+        "links": {
+          "type": "boolean",
+          "default": false
+        },
+        "attachments": {
+          "enum": [
+            "none",
+            "metadata",
+            "calendar"
+          ],
+          "default": "none"
+        }
+      }
+    },
+    "templates": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+          },
+          "kind": {
+            "enum": [
+              "built-in",
+              "declarative"
+            ]
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "configSchema": {
+      "type": "object",
+      "description": "JSON Schema for configuration objects. The host applies property defaults, validates before saving and executing, and supplies effective values in invocation.config.",
+      "default": {}
+    },
+    "recordContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "identityVersion",
+        "updateKeyVersion",
+        "capabilities",
+        "services",
+        "templates"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "identityVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "updateKeyVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version",
+              "required"
+            ],
+            "properties": {
+              "name": {
+                "enum": [
+                  "records",
+                  "remote-service",
+                  "scheduled-refresh"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "const": 1
+              },
+              "required": {
+                "type": "boolean"
+              }
+            }
+          },
+          "contains": {
+            "type": "object",
+            "required": [
+              "name",
+              "required"
+            ],
+            "properties": {
+              "name": {
+                "const": "records"
+              },
+              "required": {
+                "const": true
+              }
+            }
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "origin",
+              "pathPrefixes",
+              "minimumIntervalSeconds"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "origin": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://"
+              },
+              "pathPrefixes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^/"
+                }
+              },
+              "minimumIntervalSeconds": {
+                "type": "integer",
+                "minimum": 300,
+                "maximum": 604800
+              },
+              "authentication": {
+                "enum": [
+                  "none",
+                  "bearer"
+                ],
+                "default": "none"
+              }
+            }
+          },
+          "maxItems": 16
+        },
+        "templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "version"
+            ],
+            "properties": {
+              "family": {
+                "enum": [
+                  "shipment",
+                  "flight",
+                  "reservation",
+                  "conversation",
+                  "receipt",
+                  "bill",
+                  "verification-code",
+                  "github-notification"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "const": 1
+              }
+            }
+          }
+        }
+      },
+      "description": "Versioned records, host-mediated GET services, and scheduled refresh. Declarations do not grant access; each account must approve services and enable refresh."
+    },
+    "catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "categories"
+      ],
+      "description": "Optional discovery metadata. Required for catalogue publication; never grants host capabilities or defines pricing.",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "shipping",
+              "travel",
+              "communication",
+              "finance",
+              "security",
+              "developer-tools",
+              "utilities"
+            ]
+          }
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://[^/?#\\s]+"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "SPDX license expression or LicenseRef identifier for custom terms."
+        },
+        "keywords": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "matches": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fromDomains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "fromAddresses": {
+          "$ref": "#/$defs/stringList"
+        },
+        "subjectContains": {
+          "$ref": "#/$defs/stringList"
+        },
+        "subjectRegex": {
+          "$ref": "#/$defs/stringList"
+        },
+        "headerContains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "linkDomains": {
+          "$ref": "#/$defs/stringList"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "fromDomains"
+          ]
+        },
+        {
+          "required": [
+            "fromAddresses"
+          ]
+        },
+        {
+          "required": [
+            "subjectContains"
+          ]
+        },
+        {
+          "required": [
+            "subjectRegex"
+          ]
+        },
+        {
+          "required": [
+            "headerContains"
+          ]
+        },
+        {
+          "required": [
+            "linkDomains"
+          ]
+        }
+      ]
+    },
+    "stringList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

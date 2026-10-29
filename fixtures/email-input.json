@@ -1,0 +1,32 @@
+{
+  "message": {
+    "accountId": "account-personal",
+    "mailboxName": "INBOX",
+    "uid": 1001,
+    "messageId": "<binary-template-fixture-1@example.com>",
+    "size": 512
+  },
+  "sender": {
+    "name": "Example Service",
+    "address": "hello@example.com",
+    "domain": "example.com"
+  },
+  "recipients": {
+    "to": [
+      {
+        "name": "Developer",
+        "address": "dev@example.com",
+        "domain": "example.com"
+      }
+    ],
+    "cc": [],
+    "bcc": []
+  },
+  "subject": "Welcome to Example Service",
+  "date": "2026-07-02T09:00:00Z",
+  "headers": {},
+  "textBody": "Hi Developer,\n\nThank you for signing up to Example Service.\n\nYou can log in at https://example.com/login any time.\n\nBest,\nThe Example Service team",
+  "htmlBody": null,
+  "links": [],
+  "attachments": []
+}

@@ -1,0 +1,82 @@
+name: Reusable plugin build and release
+
+on:
+  workflow_call:
+    inputs:
+      tooling-ref:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: inbox-grinder/plugin-sdk
+          ref: ${{ inputs.tooling-ref }}
+          path: .plugin-tools
+      - name: Read build configuration
+        id: config
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          print('kind=' + json.loads(Path('.github/plugin.json').read_text())['kind'])
+          PY
+      - name: Install Rust target
+        if: startsWith(steps.config.outputs.kind, 'rust-')
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt --target wasm32-unknown-unknown
+          rustup default stable
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        if: steps.config.outputs.kind == 'go-template'
+        with:
+          go-version: '1.22.10'
+          cache: false
+      - name: Install TinyGo
+        if: steps.config.outputs.kind == 'go-template'
+        run: |
+          gh release download v0.35.0 --repo tinygo-org/tinygo --pattern tinygo_0.35.0_amd64.deb --dir "$RUNNER_TEMP/tinygo"
+          sudo dpkg -i "$RUNNER_TEMP/tinygo/tinygo_0.35.0_amd64.deb"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Install schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+      - name: Test, build and package
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: |
+          args=()
+          if [[ -n "$RELEASE_TAG" ]]; then args+=(--tag "$RELEASE_TAG"); fi
+          python3 .plugin-tools/scripts/plugin.py "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: plugin-package
+          path: dist/*
+          if-no-files-found: error
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plugin-package
+          path: dist
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --draft --title "$RELEASE_TAG" --notes 'Versioned plugin package. See DEVELOPMENT.md for build and runtime details.'
+          gh release edit "$RELEASE_TAG" --draft=false
